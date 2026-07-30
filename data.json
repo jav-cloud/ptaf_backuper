@@ -1,0 +1,9 @@
+{
+    "ptaf_ip":"",
+    "url_api" : "/api/ptaf/v4",
+    "ptaf_login":"admin",
+    "ptaf_password":"",
+    "backup_ttl":"1w",
+    "backup_frequency": "12h",
+    "path_to_save_backups":"/var/ptaf_backups"
+}
