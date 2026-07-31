@@ -69,26 +69,40 @@ def get_api_url(config):
 
 
 def wait_for_ptaf_online(session, config, timeout=3600):
-    """Wait PTAF API wake up (GET /backups/backups)"""
+    """
+    Wait until PT AF API becomes available.
+    First does a quick check (5 sec timeout), if successful returns immediately.
+    If not, enters a waiting loop with periodic retries.
+    """
     url = f"{get_api_url(config)}/backups/backups"
+    
+    # Quick check
+    try:
+        response = session.get(url, verify=False, timeout=5)
+        if response.status_code == 200:
+            logger.info("PT AF API is available (quick check)")
+            return True
+    except:
+        pass  # ignore, proceed to waiting mode
+    
+    logger.info(f"PT AF API did not respond to quick check, starting waiting mode (timeout {timeout}s)...")
     start = time.time()
     attempt = 0
-
-    logger.info(f"Waiting for availability PT AF API (timeout {timeout} from)...")
+    
     while time.time() - start < timeout:
         attempt += 1
         try:
             response = session.get(url, verify=False, timeout=10)
             if response.status_code == 200:
-                logger.info(f"PT AF API reachable (attempt {attempt})")
+                logger.info(f"PT AF API became available (attempt {attempt})")
                 return True
             else:
-                logger.debug(f"API response {response.status_code}, wait...")
+                logger.debug(f"API responded with {response.status_code}, still waiting...")
         except requests.exceptions.RequestException as e:
-            logger.debug(f"Connection Error: {e}, retry after 30 с...")
+            logger.debug(f"Connection error: {e}, retrying in 30s...")
         time.sleep(30)
-
-    logger.error(f"PT AF API don't reachable after {timeout} seconds")
+    
+    logger.error(f"PT AF API did not become available within {timeout} seconds")
     return False
 
 def authenticate(session, config):
