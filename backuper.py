@@ -460,6 +460,9 @@ def main():
     
     
     session = requests.Session()
+    if not wait_for_ptaf_online(session, config, timeout=3600):
+        logger.error("PT AF unreachable, backup canceled")
+        sys.exit(1)
     if not authenticate(session, config):
         logger.error("Authentication failed")
         sys.exit(1)
