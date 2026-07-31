@@ -32,13 +32,13 @@
  4. Устанавливаем зависимости
       sudo apt-get update
       sudo apt-get install python3 python3-venv python3-pip     
- 5. Выполняем следующие команды:
-      cp -r backup_manager /opt && \
-      cd /opt/backup_manager && \
-      chmod 600 data.json && \
-      chmod 700 start.sh setup_systemd.sh && \
-      chmod 644 backuper.py requirements.txt && \
-      chmod +x start.sh setup_systemd.sh
+ 5. Выполняем следующие команды: \
+      cp -r backup_manager /opt && /\ \
+      cd /opt/backup_manager && /\ \
+      chmod 600 data.json && /\ \
+      chmod 700 start.sh setup_systemd.sh && /\ \
+      chmod 644 backuper.py requirements.txt && /\ \
+      chmod +x start.sh setup_systemd.sh 
   6. Производим тестовый запуск скрипта
       sudo ./start.sh
   7.Если все успешно выполнилось устанавливаем таймер на запуск скрипта
