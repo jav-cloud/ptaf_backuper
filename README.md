@@ -21,11 +21,11 @@
      - Время жизни бэкапов(backup_ttl)
      - Периодичность создания бэкапов(backup_frequency)
      - Папка в которой будут дополнительно храниться бэкапы(path_to_save_backups)
- backup_ttl и backup_frequency поддерживают следующие форматы:
-            m - минуты
-            h - часы
-            d - дни
-            w - недели
+ backup_ttl и backup_frequency поддерживают следующие форматы: \
+            m - минуты \
+            h - часы \
+            d - дни \
+            w - недели \
        Применяются по отдельности(Нельзя указать 1d2h), правильно будет 26h
  2. Заходим на сервер и скачиваем туда файлы скрипта
  3. Заходим под root'a
@@ -39,25 +39,25 @@
       chmod 700 start.sh setup_systemd.sh && \\ \
       chmod 644 backuper.py requirements.txt && \\ \
       chmod +x start.sh setup_systemd.sh 
-  6. Производим тестовый запуск скрипта
+  6. Производим тестовый запуск скрипта \
       sudo ./start.sh
-  7.Если все успешно выполнилось устанавливаем таймер на запуск скрипта
+  7.Если все успешно выполнилось устанавливаем таймер на запуск скрипта \
       sudo ./setup_systemd.sh
 
 # Если нужно сменить периодичность и срок хранения бэкапов меняем значения в файле data.json и перезапускаем sudo ./setup_systemd.sh
 
 # Команды для отладки
 
-  1. Просмотр логов выполнения скрипта
+  1. Просмотр логов выполнения скрипта \
        tail -f /opt/ptaf_backuper/backup.log или cat /opt/ptaf_backuper/backup.log
-  2. Проверка логов на ошибки
+  2. Проверка логов на ошибки \
        grep ERROR /opt/ptaf_backuper/backup.log
-  3. Проверка прав доступа
+  3. Проверка прав доступа \
        ls -la /opt/ptaf_backuper/
-  4. Просмотр логов systemd
-       sudo journalctl -u ptaf_backuper.service -f
-       sudo systemctl status ptaf_backuper.service
+  4. Просмотр логов systemd \
+       sudo journalctl -u ptaf_backuper.service -f \
+       sudo systemctl status ptaf_backuper.service \
        sudo systemctl status ptaf_backuper.timer
-  5. Ручная остановка и запуск сервиса
-       sudo systemctl stop ptaf_backuper.timer
+  5. Ручная остановка и запуск сервиса \
+       sudo systemctl stop ptaf_backuper.timer \
        sudo systemctl start ptaf_backuper.service
