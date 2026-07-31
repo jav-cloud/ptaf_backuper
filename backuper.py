@@ -71,19 +71,20 @@ def get_api_url(config):
 def wait_for_ptaf_online(session, config, timeout=3600):
     """
     Wait until PT AF API becomes available.
-    First does a quick check (5 sec timeout), if successful returns immediately.
-    If not, enters a waiting loop with periodic retries.
+    Checks the root API endpoint (does not require authentication).
+    If the server responds (any HTTP status, except connection errors), we consider it online.
     """
-    url = f"{get_api_url(config)}/backups/backups"
+    # Use the base API URL (without extra path) – e.g. https://ip/api/ptaf/v4
+    url = get_api_url(config)
     
-    # Quick check
+    # Quick check (5 seconds)
     try:
         response = session.get(url, verify=False, timeout=5)
-        if response.status_code == 200:
-            logger.info("PT AF API is available (quick check)")
-            return True
-    except:
-        pass  # ignore, proceed to waiting mode
+        # Any response (even 401, 404, 500) means the server is reachable
+        logger.info("PT AF API is available (quick check)")
+        return True
+    except requests.exceptions.RequestException:
+        pass  # connection error, proceed to waiting mode
     
     logger.info(f"PT AF API did not respond to quick check, starting waiting mode (timeout {timeout}s)...")
     start = time.time()
@@ -93,17 +94,16 @@ def wait_for_ptaf_online(session, config, timeout=3600):
         attempt += 1
         try:
             response = session.get(url, verify=False, timeout=10)
-            if response.status_code == 200:
-                logger.info(f"PT AF API became available (attempt {attempt})")
-                return True
-            else:
-                logger.debug(f"API responded with {response.status_code}, still waiting...")
+            # If we get any response, the server is reachable
+            logger.info(f"PT AF API became available (attempt {attempt})")
+            return True
         except requests.exceptions.RequestException as e:
             logger.debug(f"Connection error: {e}, retrying in 30s...")
         time.sleep(30)
     
     logger.error(f"PT AF API did not become available within {timeout} seconds")
     return False
+
 
 def authenticate(session, config):
     """Authenticate to PT AF API"""
@@ -472,11 +472,14 @@ def main():
         logger.error(f"Missing required fields: {', '.join(missing_fields)}")
         sys.exit(1)
     
-    
     session = requests.Session()
-    if not wait_for_ptaf_online(session, config, timeout=3600):
+    
+    # Wait for PT AF to be online (using root API endpoint)
+    wait_timeout = config.get('wait_timeout', 3600)
+    if not wait_for_ptaf_online(session, config, timeout=wait_timeout):
         logger.error("PT AF unreachable, backup canceled")
         sys.exit(1)
+    
     if not authenticate(session, config):
         logger.error("Authentication failed")
         sys.exit(1)
