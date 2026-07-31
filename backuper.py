@@ -68,6 +68,29 @@ def get_api_url(config):
     return f"https://{config['ptaf_ip']}{config['url_api']}"
 
 
+def wait_for_ptaf_online(session, config, timeout=3600):
+    """Wait PTAF API wake up (GET /backups/backups)"""
+    url = f"{get_api_url(config)}/backups/backups"
+    start = time.time()
+    attempt = 0
+
+    logger.info(f"Waiting for availability PT AF API (timeout {timeout} from)...")
+    while time.time() - start < timeout:
+        attempt += 1
+        try:
+            response = session.get(url, verify=False, timeout=10)
+            if response.status_code == 200:
+                logger.info(f"PT AF API reachable (attempt {attempt})")
+                return True
+            else:
+                logger.debug(f"API response {response.status_code}, wait...")
+        except requests.exceptions.RequestException as e:
+            logger.debug(f"Connection Error: {e}, retry after 30 с...")
+        time.sleep(30)
+
+    logger.error(f"PT AF API don't reachable after {timeout} seconds")
+    return False
+
 def authenticate(session, config):
     """Authenticate to PT AF API"""
     url = get_api_url(config)
