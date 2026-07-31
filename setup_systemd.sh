@@ -79,7 +79,7 @@ echo "Reloading systemd..."
 systemctl daemon-reload
 
 echo "Enabling and starting timer..."
-systemctl enable --now ptaf_backuper.timer
+systemctl restart ptaf_backuper.timer
 
 echo ""
 echo "Installation complete"
