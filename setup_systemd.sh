@@ -3,20 +3,29 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-FREQUENCY=$(python3 -c "import json; print(json.load(open('data.json')).get('backup_frequency', '1d'))" 2>/dev/null)
-if [ -z "$FREQUENCY" ]; then
-    echo "ERROR: Cannot read backup_frequency from data.json"
-    exit 1
-fi
+SCHEDULE=$(python3 -c "import json; print(json.load(open('data.json')).get('backup_schedule', ''))" 2>/dev/null)
 
-# Convert frequency to systemd format
-case $FREQUENCY in
-    *m) SYSTEMD_INTERVAL="${FREQUENCY%m}min" ;;
-    *h) SYSTEMD_INTERVAL="${FREQUENCY%h}h" ;;
-    *d) SYSTEMD_INTERVAL="${FREQUENCY%d}d" ;;
-    *w) SYSTEMD_INTERVAL="${FREQUENCY%w}w" ;;
-    *) SYSTEMD_INTERVAL="1d" ;;
-esac
+if [ -n "$SCHEDULE" ]; then
+    SYSTEMD_TIMER_ONCALENDAR="$SCHEDULE"
+    SYSTEMD_TIMER_ONBOOT="5min"          # Таймер после загрузки можно увеличить если птаф долго просыпается
+    SYSTEMD_TIMER_PERSISTENT="true"
+else
+    FREQUENCY=$(python3 -c "import json; print(json.load(open('data.json')).get('backup_frequency', '1d'))" 2>/dev/null)
+    if [ -z "$FREQUENCY" ]; then
+        echo "ERROR: Cannot read backup_frequency from data.json"
+        exit 1
+    fi
+    case $FREQUENCY in
+        *m) SYSTEMD_INTERVAL="${FREQUENCY%m}min" ;;
+        *h) SYSTEMD_INTERVAL="${FREQUENCY%h}h" ;;
+        *d) SYSTEMD_INTERVAL="${FREQUENCY%d}d" ;;
+        *w) SYSTEMD_INTERVAL="${FREQUENCY%w}w" ;;
+        *) SYSTEMD_INTERVAL="1d" ;;
+    esac
+    SYSTEMD_TIMER_ONCALENDAR=""
+    SYSTEMD_TIMER_ONBOOT="5min"     # Таймер после загрузки можно увеличить если птаф долго просыпается
+    SYSTEMD_TIMER_PERSISTENT="true"
+fi
 
 SERVICE_USER=$(whoami)
 
@@ -39,17 +48,24 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# Create timer file
 cat > ptaf_backuper.timer << EOF
 [Unit]
 Description=PT AF Backup Timer
 Requires=ptaf_backuper.service
 
 [Timer]
-OnUnitActiveSec=$SYSTEMD_INTERVAL
-OnBootSec=5min
+OnBootSec=$SYSTEMD_TIMER_ONBOOT
+EOF
+
+if [ -n "$SYSTEMD_TIMER_ONCALENDAR" ]; then
+    echo "OnCalendar=$SYSTEMD_TIMER_ONCALENDAR" >> ptaf_backuper.timer
+else
+    echo "OnUnitActiveSec=$SYSTEMD_INTERVAL" >> ptaf_backuper.timer
+fi
+
+cat >> ptaf_backuper.timer << EOF
+Persistent=$SYSTEMD_TIMER_PERSISTENT
 Unit=ptaf_backuper.service
-Persistent=true
 
 [Install]
 WantedBy=timers.target
