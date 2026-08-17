@@ -13,8 +13,42 @@ import uuid
 from datetime import datetime
 import requests
 import urllib3
+import time
+import fcntl
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+LOCK_FILE = os.path.join(script_dir, '.backup.lock')
+MIN_INTERVAL = config.get('backup_frequency', 3600)
+
+def acquire_lock():
+    global lock_fd
+    lock_fd = open(LOCK_FILE, 'w')
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except (IOError, OSError):
+        logger.warning("Another instance is already running, exiting.")
+        return False
+
+def check_last_backup_time(interval):
+    """Проверяет, был ли бэкап выполнен менее min_interval секунд назад."""
+    last_time_file = os.path.join(script_dir, '.last_backup_time')
+    if not os.path.exists(last_time_file):
+        return True  # бэкапа ещё не было, можно выполнять
+    
+    with open(last_time_file, 'r') as f:
+        try:
+            last_time = float(f.read().strip())
+        except:
+            return True
+    if time.time() - last_time < interval:
+        logger.info(f"Last backup was {time.time() - last_time:.0f} seconds ago, skipping (min interval {interval}s).")
+        return False
+    return True
+
+def update_last_backup_time():
+    with open(os.path.join(script_dir, '.last_backup_time'), 'w') as f:
+        f.write(str(time.time()))
 
 
 def setup_logging(log_file="backup.log"):
@@ -32,7 +66,6 @@ def setup_logging(log_file="backup.log"):
 
 
 def load_config(config_file="data.json"):
-    """Load config from JSON"""
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     return config
@@ -473,7 +506,11 @@ def main():
         sys.exit(1)
     
     session = requests.Session()
-    
+    if not acquire_lock():
+    sys.exit(0)
+
+    if not check_last_backup_time(MIN_INTERVAL):
+    sys.exit(0)
     # Wait for PT AF to be online (using root API endpoint)
     wait_timeout = config.get('wait_timeout', 3600)
     if not wait_for_ptaf_online(session, config, timeout=wait_timeout):
@@ -506,6 +543,7 @@ def main():
     
     logger.info("PT AF Backup completed successfully")
     logger.info("=" * 60)
+    update_last_backup_time()
 
 
 if __name__ == "__main__":
