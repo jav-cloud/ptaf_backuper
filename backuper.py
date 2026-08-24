@@ -17,9 +17,6 @@ import time
 import fcntl
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-LOCK_FILE = os.path.join(script_dir, '.backup.lock')
-MIN_INTERVAL = config.get('backup_frequency', 3600)
-
 def acquire_lock():
     global lock_fd
     lock_fd = open(LOCK_FILE, 'w')
@@ -496,6 +493,9 @@ def main():
     
     config_file = os.path.join(script_dir, 'data.json')
     config = load_config(config_file)
+    
+    LOCK_FILE = os.path.join(script_dir, '.backup.lock')
+    MIN_INTERVAL = config.get('backup_frequency', 3600)
     
     # Check required fields
     required_fields = ['ptaf_ip', 'ptaf_login', 'ptaf_password', 'path_to_save_backups']
