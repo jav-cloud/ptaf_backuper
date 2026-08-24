@@ -507,10 +507,10 @@ def main():
     
     session = requests.Session()
     if not acquire_lock():
-    sys.exit(0)
+        sys.exit(0)
 
     if not check_last_backup_time(MIN_INTERVAL):
-    sys.exit(0)
+        sys.exit(0)
     # Wait for PT AF to be online (using root API endpoint)
     wait_timeout = config.get('wait_timeout', 3600)
     if not wait_for_ptaf_online(session, config, timeout=wait_timeout):
