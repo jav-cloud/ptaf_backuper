@@ -17,9 +17,9 @@ import time
 import fcntl
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-def acquire_lock():
+def acquire_lock(lock_file):
     global lock_fd
-    lock_fd = open(LOCK_FILE, 'w')
+    lock_fd = open(lock_file, 'w')
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return True
@@ -27,7 +27,7 @@ def acquire_lock():
         logger.warning("Another instance is already running, exiting.")
         return False
 
-def check_last_backup_time(interval):
+def check_last_backup_time(interval,script_dir):
     """Проверяет, был ли бэкап выполнен менее min_interval секунд назад."""
     last_time_file = os.path.join(script_dir, '.last_backup_time')
     if not os.path.exists(last_time_file):
@@ -43,7 +43,7 @@ def check_last_backup_time(interval):
         return False
     return True
 
-def update_last_backup_time():
+def update_last_backup_time(script_dir):
     with open(os.path.join(script_dir, '.last_backup_time'), 'w') as f:
         f.write(str(time.time()))
 
@@ -506,10 +506,10 @@ def main():
         sys.exit(1)
     
     session = requests.Session()
-    if not acquire_lock():
+    if not acquire_lock(LOCK_FILE):
         sys.exit(0)
 
-    if not check_last_backup_time(MIN_INTERVAL):
+    if not check_last_backup_time(MIN_INTERVAL, script_dir):
         sys.exit(0)
     # Wait for PT AF to be online (using root API endpoint)
     wait_timeout = config.get('wait_timeout', 3600)
@@ -543,7 +543,7 @@ def main():
     
     logger.info("PT AF Backup completed successfully")
     logger.info("=" * 60)
-    update_last_backup_time()
+    update_last_backup_time(script_dir)
 
 
 if __name__ == "__main__":
