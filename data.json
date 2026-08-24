@@ -5,5 +5,6 @@
     "ptaf_password":"",
     "backup_ttl":"1w",
     "backup_frequency": "12h",
+    "backup_schedule" : "*-*-* 04:30:00",
     "path_to_save_backups":"/var/ptaf_backups"
 }
